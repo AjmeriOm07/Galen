@@ -21,7 +21,7 @@ Galen takes user symptom descriptions (e.g., *"I have fever, headache, and body 
 - **Symptoms:** 131
 - **Format:** CSV
 
-🔗 [Link to Dataset](https://www.kaggle.com/your-dataset-link)
+🔗 [Link to Dataset][(https://www.kaggle.com/datasets/itachi9604/disease-symptom-description-dataset)
 
 ## 🛠️ Tech Stack
 
@@ -29,8 +29,6 @@ Galen takes user symptom descriptions (e.g., *"I have fever, headache, and body 
 |----------|--------------|
 | Language | Python 3.x |
 | ML Framework | Scikit-learn (RandomForestClassifier) |
-| NLP | NLTK |
-| Web Framework | Flask |
 | Data Processing | Pandas, NumPy |
 
 ## 📁 Project Structure
