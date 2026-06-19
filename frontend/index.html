@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galen  - Medical Diagnosis Assistant</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    
+    /* Animations */
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+    .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
+    .slide-up { animation: slideUp 0.3s ease-out forwards; }
+    .pulse-glow { animation: pulseGlow 2s infinite; }
+    
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 5px rgba(6, 182, 212, 0.2); } 50% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); } }
+    
+    /* Typing dots */
+    .typing-dot { animation: pulse-dot 1.4s infinite ease-in-out; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse-dot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+    
+    /* Custom scrollbar */
+    .chat-scroll::-webkit-scrollbar { width: 4px; }
+    .chat-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: #06b6d4; border-radius: 4px; }
+    
+    /* Message animations */
+    .msg-enter { animation: fadeInUp 0.35s ease-out forwards; }
+    .progress-fill { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Card hover effects */
+    .result-card {
+      transition: all 0.3s ease;
+    }
+    .result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.15);
+    }
+    
+    /* Gradient borders */
+    .gradient-border {
+      position: relative;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      border-radius: 1rem;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 1rem;
+      padding: 1px;
+      background: linear-gradient(135deg, #06b6d4, #6366f1);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-950 font-body text-slate-100">
+  <div id="app-root" class="h-full w-full flex flex-col overflow-hidden">
+    
+    <!-- ========== LANDING PAGE ========== -->
+    <div id="page-landing" class="h-full w-full flex flex-col items-center justify-center px-6 text-center relative overflow-auto">
+      <!-- Animated gradient background -->
+      <div class="absolute inset-0 opacity-30" style="background: radial-gradient(ellipse at 50% 30%, #0ea5e9 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, #6366f1 0%, transparent 50%);"></div>
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-20 left-10 w-72 h-72 bg-cyan-500 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-indigo-500 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div class="relative z-10 max-w-xl fade-in-up">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs font-medium tracking-wide mb-8 pulse-glow">
+          🩺 ML-Powered Clinical Decision Support
+        </div>
+        <h1 class="font-display text-6xl md:text-7xl tracking-tight text-white mb-4 bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">Galen </h1>
+        <p class="text-lg text-slate-400 mb-10 max-w-md mx-auto leading-relaxed">Conversational ML model that guides you through symptom analysis with intelligent, step-by-step clinical reasoning.</p>
+        <button onclick="startConsultation()" class="inline-flex items-center gap-2.5 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white font-semibold px-7 py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-cyan-500/25 active:scale-95">
+          🏥 Start Consultation
+        </button>
+        <div class="flex gap-6 mt-12 justify-center">
+          <button onclick="showAbout()" class="text-sm text-slate-500 hover:text-cyan-400 transition-colors">About</button>
+          <button onclick="showDisclaimer()" class="text-sm text-slate-500 hover:text-cyan-400 transition-colors">Disclaimer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CONSULTATION PAGE ========== -->
+    <div id="page-consultation" class="h-full w-full flex flex-col hidden">
+      <header class="flex-shrink-0 flex items-center justify-between px-4 md:px-6 py-3 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur">
+        <button onclick="backToLanding()" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">← Home</button>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-display text-lg text-white">Galen AI</span>
+        </div>
+        <button onclick="resetAndHome()" class="flex items-center gap-1.5 text-slate-500 hover:text-rose-400 transition-colors text-xs font-medium">⟳ Reset</button>
+      </header>
+
+      <!-- Progress Bar -->
+      <div class="flex-shrink-0 px-4 md:px-6 py-2.5 bg-slate-900/50">
+        <div class="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+          <span id="progress-label">Symptom Assessment</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="chat-area" class="flex-1 overflow-y-auto chat-scroll px-4 md:px-6 py-4 space-y-3"></div>
+
+      <div id="quick-replies" class="flex-shrink-0 px-4 md:px-6 hidden">
+        <div class="flex flex-wrap gap-2 pb-2"></div>
+      </div>
+
+      <div class="flex-shrink-0 px-4 md:px-6 py-3 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur">
+        <form id="chat-form" class="flex gap-2" onsubmit="return false;">
+          <input id="chat-input" type="text" placeholder="Describe your symptoms..." autocomplete="off" class="flex-1 bg-slate-800/70 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all">
+          <button type="submit" class="bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white rounded-xl px-4 py-3 transition-all active:scale-95 flex items-center justify-center">📤</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ========== RESULTS PAGE ========== -->
+    <div id="page-results" class="h-full w-full flex flex-col hidden overflow-auto">
+      <header class="flex-shrink-0 flex items-center justify-between px-4 md:px-6 py-3 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur">
+        <button onclick="backToConsultation()" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">← Back</button>
+        <span class="font-display text-lg text-white">Diagnosis Report</span>
+        <button onclick="resetAndHome()" class="flex items-center gap-1.5 text-slate-500 hover:text-cyan-400 transition-colors text-xs font-medium">🏠 Home</button>
+      </header>
+      
+      <div class="flex-1 px-4 md:px-6 py-6 overflow-auto">
+        <div id="results-container" class="max-w-2xl mx-auto space-y-4">
+          <!-- Results will be populated here -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // API Configuration
+    const API_BASE = 'http://127.0.0.1:5000/api';
+    
+    let state = {
+      sessionId: null,
+      currentPage: 'landing',
+      results: null
+    };
+
+    let isProcessing = false;
+
+    // ============================================
+    // API CALLS
+    // ============================================
+    async function startConsultationAPI() {
+      const response = await fetch(`${API_BASE}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return await response.json();
+    }
+
+    async function sendMessageAPI(sessionId, message) {
+      const response = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, message: message })
+      });
+      return await response.json();
+    }
+
+    async function resetSessionAPI(sessionId) {
+      await fetch(`${API_BASE}/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+    }
+
+    // ============================================
+    // UI FUNCTIONS
+    // ============================================
+    function showPage(page) {
+      document.getElementById('page-landing').classList.add('hidden');
+      document.getElementById('page-consultation').classList.add('hidden');
+      document.getElementById('page-results').classList.add('hidden');
+      document.getElementById(`page-${page}`).classList.remove('hidden');
+      state.currentPage = page;
+    }
+
+    function addMessage(role, text) {
+      const area = document.getElementById('chat-area');
+      const div = document.createElement('div');
+      div.className = `msg-enter flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+      const bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'max-w-xs sm:max-w-sm bg-gradient-to-r from-cyan-500 to-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm'
+        : 'max-w-xs sm:max-w-sm bg-slate-800 text-slate-200 rounded-2xl rounded-bl-md px-4 py-2.5 text-sm';
+      bubble.textContent = text;
+      div.appendChild(bubble);
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function showTyping() {
+      const area = document.getElementById('chat-area');
+      const div = document.createElement('div');
+      div.id = 'typing-indicator';
+      div.className = 'flex justify-start msg-enter';
+      div.innerHTML = `<div class="bg-slate-800 rounded-2xl rounded-bl-md px-4 py-3 flex gap-1.5 items-center">
+        <span class="w-2 h-2 rounded-full bg-slate-400 typing-dot"></span>
+        <span class="w-2 h-2 rounded-full bg-slate-400 typing-dot"></span>
+        <span class="w-2 h-2 rounded-full bg-slate-400 typing-dot"></span>
+      </div>`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function showQuickReplies(replies) {
+      const container = document.getElementById('quick-replies');
+      const inner = container.querySelector('div');
+      inner.innerHTML = '';
+      if (!replies || replies.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+      replies.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium px-3.5 py-2 rounded-lg transition-all active:scale-95 hover:border-cyan-500/50';
+        btn.textContent = opt;
+        btn.onclick = () => {
+          document.getElementById('chat-input').value = opt;
+          handleUserInput(opt);
+        };
+        inner.appendChild(btn);
+      });
+      container.classList.remove('hidden');
+    }
+
+    function hideQuickReplies() {
+      document.getElementById('quick-replies').classList.add('hidden');
+    }
+
+    function clearChat() {
+      document.getElementById('chat-area').innerHTML = '';
+    }
+
+    function updateProgress(step, total) {
+      const pct = Math.round((step / total) * 100);
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-pct').textContent = pct + '%';
+    }
+
+    // ============================================
+    // RESULTS PAGE WITH REMEDIES
+    // ============================================
+    function showResultsPage(predictions, symptoms) {
+      const container = document.getElementById('results-container');
+      container.innerHTML = '';
+      
+      // Extracted symptoms section
+      if (symptoms && symptoms.length > 0) {
+        const symDiv = document.createElement('div');
+        symDiv.className = 'gradient-border p-4 fade-in-up';
+        symDiv.innerHTML = `
+          <h3 class="text-xs text-cyan-400 uppercase tracking-wider mb-3 font-semibold flex items-center gap-2">
+            📋 Symptoms Identified
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            ${symptoms.map(s => `<span class="bg-cyan-500/15 text-cyan-400 text-xs px-2.5 py-1 rounded-md border border-cyan-500/30">${s.replace(/_/g, ' ')}</span>`).join('')}
+          </div>
+        `;
+        container.appendChild(symDiv);
+      }
+      
+      // Predicted Conditions
+      const predDiv = document.createElement('div');
+      predDiv.className = 'space-y-3';
+      predDiv.innerHTML = `<h3 class="text-xs text-indigo-400 uppercase tracking-wider mb-2 font-semibold flex items-center gap-2">🎯 Predicted Conditions</h3>`;
+      
+      predictions.forEach((pred, i) => {
+        const isTop = i === 0;
+        const card = document.createElement('div');
+        card.className = `result-card gradient-border p-4 fade-in-up`;
+        card.style.animationDelay = `${0.1 + i * 0.1}s`;
+        
+        const confidenceColor = pred.confidence >= 70 ? 'text-green-400' : pred.confidence >= 40 ? 'text-yellow-400' : 'text-orange-400';
+        
+        card.innerHTML = `
+          ${isTop ? '<div class="text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> Most Likely</div>' : ''}
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-white font-semibold text-lg">${pred.disease}</h3>
+            <span class="${confidenceColor} font-bold text-2xl font-display">${pred.confidence}%</span>
+          </div>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-4">
+            <div class="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full progress-fill" style="width:${pred.confidence}%"></div>
+          </div>
+          
+          ${pred.description ? `<p class="text-slate-400 text-sm leading-relaxed mb-4">${pred.description}</p>` : ''}
+          
+          ${pred.precautions && pred.precautions.length > 0 ? `
+            <div class="mb-4">
+              <h4 class="text-xs text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1">⚠️ Precautions</h4>
+              <ul class="space-y-1">
+                ${pred.precautions.map(p => `<li class="text-slate-400 text-xs flex items-start gap-2"><span class="text-amber-400">•</span> ${p}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          
+          ${pred.recommendations && pred.recommendations.length > 0 ? `
+            <div>
+              <h4 class="text-xs text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">💊 Recommendations</h4>
+              <ul class="space-y-1">
+                ${pred.recommendations.map(r => `<li class="text-slate-400 text-xs flex items-start gap-2"><span class="text-emerald-400">+</span> ${r}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        `;
+        predDiv.appendChild(card);
+      });
+      container.appendChild(predDiv);
+      
+      // Disclaimer
+      const disclaimerDiv = document.createElement('div');
+      disclaimerDiv.className = 'mt-6 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20';
+      disclaimerDiv.innerHTML = `
+        <div class="flex items-start gap-2 text-amber-300 text-xs">
+          <span>⚠️</span>
+          <span>This is an AI-generated assessment for educational purposes only. Please consult a qualified healthcare professional for proper medical advice, diagnosis, or treatment.</span>
+        </div>
+      `;
+      container.appendChild(disclaimerDiv);
+      
+      // Action buttons
+      const actionDiv = document.createElement('div');
+      actionDiv.className = 'flex gap-3 mt-6';
+      actionDiv.innerHTML = `
+        <button onclick="resetAndStart()" class="flex-1 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 text-sm">New Consultation</button>
+        <button onclick="backToLanding()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-3 rounded-xl transition-all text-sm">Home</button>
+      `;
+      container.appendChild(actionDiv);
+      
+      showPage('results');
+    }
+
+    // ============================================
+    // MAIN CONVERSATION HANDLER
+    // ============================================
+    async function startConsultation() {
+      showPage('consultation');
+      clearChat();
+      hideQuickReplies();
+      updateProgress(1, 5);
+      
+      try {
+        const data = await startConsultationAPI();
+        state.sessionId = data.session_id;
+        addMessage('ai', data.message);
+        if (data.quick_replies && data.quick_replies.length > 0) {
+          showQuickReplies(data.quick_replies);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        addMessage('ai', "❌ Cannot connect to backend. Make sure server is running on port 5000");
+      }
+    }
+
+    async function handleUserInput(text) {
+      if (isProcessing || !text.trim() || !state.sessionId) return;
+      isProcessing = true;
+      hideQuickReplies();
+      addMessage('user', text.trim());
+      document.getElementById('chat-input').value = '';
+
+      showTyping();
+
+      try {
+        const response = await sendMessageAPI(state.sessionId, text);
+        removeTyping();
+
+        if (response.type === 'prediction') {
+          addMessage('ai', response.message);
+          
+          if (response.predictions && response.predictions.length > 0) {
+            // Store results and show results page
+            state.results = {
+              predictions: response.predictions,
+              symptoms: response.symptoms || []
+            };
+            
+            // Add a button to view detailed report
+            addMessage('ai', "✅ Analysis complete! Click below to view your detailed diagnosis report.");
+            showQuickReplies(['View Full Report']);
+            
+            const btns = document.querySelectorAll('#quick-replies button');
+            if (btns[0]) {
+              btns[0].onclick = () => {
+                hideQuickReplies();
+                showResultsPage(state.results.predictions, state.results.symptoms);
+              };
+            }
+          } else {
+            addMessage('ai', "Unable to determine a condition with the symptoms provided. Please consult a healthcare professional.");
+            showQuickReplies(['Start New Consultation', 'Home']);
+            const btns = document.querySelectorAll('#quick-replies button');
+            if (btns[0]) btns[0].onclick = () => { resetAndStart(); };
+            if (btns[1]) btns[1].onclick = () => { backToLanding(); };
+          }
+        } else {
+          addMessage('ai', response.message);
+          updateProgress(response.step || 3, 5);
+          if (response.quick_replies && response.quick_replies.length > 0) {
+            showQuickReplies(response.quick_replies);
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        removeTyping();
+        addMessage('ai', 'Sorry, I encountered an error. Please try again.');
+      }
+      
+      isProcessing = false;
+    }
+
+    async function resetAndStart() {
+      if (state.sessionId) {
+        await resetSessionAPI(state.sessionId);
+      }
+      state.sessionId = null;
+      state.results = null;
+      startConsultation();
+    }
+
+    function resetAndHome() {
+      if (state.sessionId) {
+        resetSessionAPI(state.sessionId);
+      }
+      state.sessionId = null;
+      state.results = null;
+      showPage('landing');
+    }
+
+    function backToLanding() {
+      showPage('landing');
+    }
+
+    function backToConsultation() {
+      showPage('consultation');
+    }
+
+    function showAbout() {
+      alert("🏥 Galen AI\n\nA clinical decision support system that uses Machine Learning to analyze symptoms and provide possible diagnoses.\n\nFeatures:\n• Natural conversation flow\n• Symptom extraction from text\n• ML-based disease prediction\n• Treatment recommendations\n\nFor educational purposes only.");
+    }
+
+    function showDisclaimer() {
+      alert("⚠️ MEDICAL DISCLAIMER\n\nGalen AI is strictly for educational and informational purposes. It is NOT a substitute for professional medical advice, diagnosis, or treatment.\n\n• Do not use in emergencies\n• Do not rely solely on AI predictions\n• Always consult a qualified healthcare provider\n\nThe developers assume no responsibility for any actions taken based on this system's output.");
+    }
+
+    // ============================================
+    // FORM HANDLER
+    // ============================================
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      if (input.value.trim() && state.sessionId) {
+        handleUserInput(input.value);
+      }
+    });
+
+    console.log("✅ Galen AI Frontend Loaded - Ready for consultations!");
+  </script>
+</body>
+</html>
